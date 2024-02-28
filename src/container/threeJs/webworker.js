@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 let _IDs = 0;
 
-
+let UPDATE_DELAY_MS = 100;
 const _NUM_WORKERS = 1;
 export class CustomThread {
     constructor(entry, workerPool) {
@@ -14,24 +14,9 @@ export class CustomThread {
     }
 
     _OnMessage(e) {
-        //console.log(e);
-        if (e.data.msg === "modify") {
-            this._parent.add(e.data.addlevels, this);
-        }
-        this._parent.finish(this, e.data.pos);
+        this._parent._map = e.data.object;
+        this._parent.finish(this, e.data.pointData, e.data.intensity, e.data.classif);
     }
-
-    /*
-    _OnMessage(e) {
-        const resolve = this._resolve;
-        this._resolve = null;
-        console.log(e);
-        if (e.data.msg === "subdivide") {
-            this._parent.subdivide(e.data.level);
-        }
-        this._parent.finish(this);
-    }
-    */
 
     get id() {
         return this._id;
@@ -64,7 +49,7 @@ export class WorkerPool {
         if (this._queue.length < _NUM_WORKERS) {
             this._queue.push(workItem);
             this._PumpQueue();
-        }else if(this._queue.length >0){
+        } else if (this._queue.length > 0) {
             this._PumpQueue();
         }
     }
@@ -75,50 +60,25 @@ export class WorkerPool {
             this._busy[w.id] = w;
 
             const workItem = this._queue.shift();
-            //console.log(workItem);
             w.postMessage(workItem);
-            /*, (v) => {
-            console.log(v);
-            delete this._busy[w.id];
-            this._free.push(w);
-            this._PumpQueue();
-        });
-        /*
-        w.postMessage(workItem);
-        delete this._busy[w.id];
-        this._free.push(w);
-        this._PumpQueue();
-        */
         }
     }
-    /*
-    subdivide(level) {
-        this._map.travelTo(level).subdivide();
-    }
-    */
-
-    add(addlevels, deletelevels, w) {
-        addlevels.forEach(level => {
-            this._map.add(level);
-        });
-        /*
-        deletelevels.forEach(level => {
-            this._map.delete(level);
-        });
-        w.postMessage({draw:true,object:this._map});
-*/
-    }
 
 
-    finish(w, pos) {
+
+    finish(w, pointData, intensity, classif) {
         //console.log(w);
-        this._returnedDots.geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(pos), 3));
+        this._returnedDots.geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(pointData), 3));
+        this._returnedDots.geometry.setAttribute("intensity", new THREE.BufferAttribute(new Float32Array(intensity), 1));
+        this._returnedDots.geometry.setAttribute("classification", new THREE.BufferAttribute(new Float32Array(classif), 3));
+
+        this._returnedDots.geometry.computeBoundingSphere();
         //this._returnedDots.geometry.rotateX(-1.5708);
         //this._returnedDots.geometry.computeBoundingSphere();
         this._returnedDots.geometry.needsUpdate = true;
         delete this._busy[w.id];
         this._free.push(w);
-        //this._PumpQueue();
+        this._PumpQueue();
     }
 
 }

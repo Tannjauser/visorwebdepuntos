@@ -1,12 +1,41 @@
-onmessage = (e) => {
-        const addLevels=[];
-        var pos = [];
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.154.0/build/three.module.js';
+
+onmessage = async (e) => {
+        let addLevels=[];
+        let pointData = [];
+        let intensity=[];
+        let classif=[];
+        let chunckMap;
+        let chunckMapSize = e.data.object.chuncks.size;
         //console.log(e);
-        e.data.object.chuncks.forEach(function (value, key) {
-           // console.log(value);
-            if (distanceTo(value[0].boundingSphere.center, e.data.camera) < (value[1])[2] * 1.5) {
-                pos = pos.concat(value[2]);
+        for (const [key, value] of e.data.object.chuncks.entries()) {
+            if (distanceTo(value[0], e.data.camera) < value[1][2] * 1.5) {
+                chunckMap = e.data.object;
+                pointData = pointData.concat(value[2]);
+                intensity = intensity.concat(value[3]);
+                classif = classif.concat(value[4]);
+    
+                chunckMap = await add(chunckMap, key + "1");
+                chunckMap =await add(chunckMap, key + "2");
+                chunckMap =await add(chunckMap, key + "3");
+                chunckMap =await add(chunckMap, key + "4");
+            } else {
+                deleteLevel(e.data.object, key);
+            }
+        }
+        /*
+        e.data.object.chuncks.forEach( function (value, key) {
+            if (distanceTo(value[0], e.data.camera) < (value[1])[2] * 1.5) {
+                chunckMap = e.data.object;
+                pointData = pointData.concat(value[2]);
+                intensity = intensity.concat(value[3]);
+                classif = classif.concat(value[4]);
                 //console.log("HOLA");
+                add(chunckMap,key+"1")
+                 add(chunckMap,key+"2")
+                 add(chunckMap,key+"3")
+                 add(chunckMap,key+"4")
+                /*
                 if(add(e.data.object,key+"1")){
                     addLevels.push(key+"1");
                 }
@@ -19,6 +48,7 @@ onmessage = (e) => {
                 if(add(e.data.object,key+"4")){
                     addLevels.push(key+"4");
                 }
+                */
                 /*
                 if(!e.data.object.chuncks.has(key+"1") || ){
                     addLevels.push(key+"1");
@@ -30,15 +60,8 @@ onmessage = (e) => {
                     addLevels.push(key+"4");
                 }
                 */
-            } else {
-               deleteLevel(e.data.object,key);
-            }
-        });
-        if(addLevels.size===0){
-            postMessage("finish");
-        }else{
-            postMessage({msg:"modify", addlevels: addLevels, pos: pos});
-        }
+        
+            postMessage({pointData: pointData, intensity: intensity, classif: classif, object: chunckMap});
 
 
 }
@@ -56,14 +79,15 @@ function distanceToSquared(v, other) {
 
 }
 function draw(chuncks) {
-    var pos = [];
+    let pointData = [];
 
-    chuncks.forEach(function (value, key) {
-        pos = pos.concat(value[2]);
+    chuncks.forEach(function (value) {
+        pointData = pointData.concat(value[2]);
     });
 
-    return pos;
+    return pointData;
 }
+/*
 function add(chuncksMap,level) {
     if (!chuncksMap.chuncks.has(level) && !chuncksMap.notFound.has(level)) {
         if (chuncksMap.unusedChuncks.has(level)) {
@@ -76,6 +100,24 @@ function add(chuncksMap,level) {
     }
     return false;
 }
+*/
+
+async function add(chuncksMap, level) {
+    if (!chuncksMap.chuncks.has(level) && !chuncksMap.notFound.has(level)) {
+        if (chuncksMap.unusedChuncks.has(level)) {
+            chuncksMap.chuncks.set(level, chuncksMap.unusedChuncks.get(level));
+            chuncksMap.unusedChuncks.delete(level);
+        } else {
+            try{
+                const response = setChildFileWork(chuncksMap,level);
+                chuncksMap = response;
+            }catch(error){
+            }
+        }
+    }
+    return chuncksMap;
+
+}
 
 function deleteLevel(chuncksMap, level) {
     if (level !== "0") {
@@ -85,4 +127,39 @@ function deleteLevel(chuncksMap, level) {
         }
     }
 
+}
+
+async function setChildFileWork(chuncksMap,level) {
+    try{
+         let response = await fetch('chuncks/' + level + '/data.json', {
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
+        });
+        if(!response.ok){
+            throw new Error("Failed to fetch");
+        }
+        
+        const data = await response.json();
+        chuncksMap = insert(data, level,chuncksMap);
+        return chuncksMap;
+    } catch{
+        chuncksMap.notFound.add(level)
+        return chuncksMap;
+    }
+}
+
+function insert(chunck, level,chuncksMap) {
+    let points = chunck[0];
+    let classif = chunck[1];
+    let intensity = chunck[2];
+    //const pointsShared = new Float32Array( new SharedArrayBuffer(4 * points.lenght));
+    let boundry = chunck[3];
+    let geometry = new THREE.BufferGeometry();
+    geometry.setAttribute(
+        'position',
+        new THREE.BufferAttribute(new Float32Array(points), 3)
+    );
+    geometry.computeBoundingSphere();
+    let array = [geometry.boundingSphere.center, boundry, points,intensity,classif];
+    chuncksMap.chuncks.set(level, array);
+    return chuncksMap;
 }

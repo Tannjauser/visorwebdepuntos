@@ -4,16 +4,17 @@ import * as THREE from 'three';
 
 export class ChunckMapSet {
     constructor(initChunck, chunck) {
-        const points = chunck[0];
-        const classif = chunck[1];
-        const boundry = chunck[3];
-        const geometry = new THREE.BufferGeometry();
+        let points = chunck[0];
+        let classif = chunck[1];
+        let intensity = chunck[2];
+        let boundry = chunck[3];
+        let geometry = new THREE.BufferGeometry();
         geometry.setAttribute(
             'position',
             new THREE.BufferAttribute(new Float32Array(points), 3)
         );
         geometry.computeBoundingSphere();
-        const array = [geometry, boundry, points];
+        let array = [geometry.boundingSphere.center, boundry, points,intensity,classif];
         this.chuncks = new Map([[initChunck, array]]);
         this.unusedChuncks = new Map();
         this.notFound = new Set();
@@ -23,7 +24,6 @@ export class ChunckMapSet {
     delete(level) {
         if (level !== "0") {
             if (this.chuncks.has(level)) {
-                this.unusedChuncks.set(level, this.chuncks.get(level));
                 this.chuncks.delete(level);
             }
         }
@@ -69,16 +69,18 @@ export class ChunckMapSet {
     }
         
     insert(chunck, level) {
-        const points = chunck[0];
+        let points = chunck[0];
+        let classif = chunck[1];
+        let intensity = chunck[2];
         //const pointsShared = new Float32Array( new SharedArrayBuffer(4 * points.lenght));
-        const boundry = chunck[3];
-        const geometry = new THREE.BufferGeometry();
+        let boundry = chunck[3];
+        let geometry = new THREE.BufferGeometry();
         geometry.setAttribute(
             'position',
             new THREE.BufferAttribute(new Float32Array(points), 3)
         );
         geometry.computeBoundingSphere();
-        const array = [geometry, boundry, points];
+        let array = [geometry.boundingSphere.center, boundry, points,intensity,classif];
         this.chuncks.set(level, array);
         return true;
     }
