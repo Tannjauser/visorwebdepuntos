@@ -15,8 +15,7 @@ window.addEventListener("load", function(e){
 
 const Menu = () =>{
     return (
-        <nav>
-            <div className="hamburger-menu">
+        <div className="hamburger-menu">
                 <div className="menu menu-top">
                 </div>
                 <div className="menu menu-mid">
@@ -24,7 +23,6 @@ const Menu = () =>{
                 <div className="menu menu-bottom"> 
                 </div>
             </div>
-        </nav>
     )
 }
 

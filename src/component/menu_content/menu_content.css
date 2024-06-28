@@ -12,25 +12,58 @@ body{
 .off-screen-menu{
     position: fixed;
     top: 0%;
-    left: -75%;
+    left: -400px;
     background-color: #333;
     height: 100vh;
-    width: 15%;
-    min-width: fit-content;
+    width: 300px;
+    min-width: 400px;
     transition: left .5s;
+    max-width: 400px;
     font-family: 'Gotham Rounded', sans-serif;
-    padding-top: 5%;
+    text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+    
+    box-shadow: 0px 3px 3px #111;
+    padding-top:  50px;
 }
 
 .off-screen-menu.active{
     left: 0;
-    padding-top: 5%;
+    padding-top:  50px;
+}
 
+.hidden {
+  visibility: hidden;
+  transition: visibility .7s, max-height .7s;
+  max-height: 0;
+  overflow: hidden;
+}
+
+.hidden.open {
+  visibility: visible;
+  max-height: 300px;
+}
+
+.hidden.openLarge {
+  visibility: visible;
+  max-height: 800px;
+}
+
+.menu-container{
+  background-color: #616161;
+  border: 1px solid #000000;
+  padding-left: 2%;
+  padding-right: 2%;
+  cursor: pointer;
+  max-width: 400px;
 }
 
 .content{
     top: 5%;
     position: relative;
+    padding-left: 2%;
+    padding-right: 2%;
+    overflow-y: auto;
+    max-width: 400px;
 }
 
 .slidecontainer {
@@ -42,13 +75,19 @@ body{
     -webkit-appearance: none;  /* Override default CSS styles */
     appearance: none;
     width: 100%; /* Full-width */
-    height: 25px; /* Specified height */
+    height: 12px; /* Specified height */
     background: #d3d3d3; /* Grey background */
     outline: none; /* Remove outline */
     opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
     -webkit-transition: .2s; /* 0.2 seconds transition on hover */
     transition: opacity .2s;
+    
   }
+
+  .slider.adaptive{
+    width: auto;
+  }
+
   
   /* Mouse-over effects */
   .slider:hover {
@@ -59,8 +98,8 @@ body{
   .slider::-webkit-slider-thumb {
     -webkit-appearance: none; /* Override default look */
     appearance: none;
-    width: 25px; /* Set a specific slider handle width */
-    height: 25px; /* Slider handle height */
+    width: 14px; /* Set a specific slider handle width */
+    height: 14px; /* Slider handle height */
     background: #04AA6D; /* Green background */
     cursor: pointer; /* Cursor on hover */
   }
@@ -71,5 +110,229 @@ body{
     background: #04AA6D; /* Green background */
     cursor: pointer; /* Cursor on hover */
   }
+
+/* Dropdown Button */
+.dropbtn {
+  background-color: #045a3a;
+  color: white;
+  padding: 10px;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+}
+
+/* Dropdown button on hover & focus */
+.dropbtn:hover, .dropbtn:focus {
+  background-color: #04AA6D;
+}
+
+/* The container <div> - needed to position the dropdown content */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+/* Dropdown Content (Hidden by Default) */
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #d3d3d3;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+  text-shadow: none;
+}
+
+/* Links inside the dropdown */
+.dropdown-content option {
+  color: black;
+  background: #d3d3d3;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+}
+
+/* Change color of dropdown links on hover */
+.dropdown-content option:hover {background-color: #ddd;}
+
+/* Show the dropdown menu (use JS to add this class to the .dropdown-content container when the user clicks on the dropdown button) */
+.show {display:contents;}
+
+
+.caret {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-left: 2px;
+  vertical-align: middle;
+  border-top: 4px solid;
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent
+}
+
+.range-options{
+  display: none;
+
+}
+
+.btn {
+  display: inline-block;
+  margin-bottom: 0;
+  font-weight: 400;
+  text-align: center;
+  vertical-align: middle;
+  cursor: pointer;
+  background-image: none;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  padding: 6px 12px;
+  font-size: 14px;
+  line-height: 1.42857143;
+  border-radius: 4px;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.btn-default {
+  color: #ffffff;
+  background-color: #fff;
+  border-color: #ccc;
+}
+
+.btn-default-grey {
+  color: #616161;
+  background-color: #616161;
+  border-color: #616161;
+}
+.btn-default-grey:hover {
+  color: #c9c8c8;
+  background-color: #c9c8c8;
+  border-color: #c9c8c8;
+}
+
+.btn-default-transparent{
+  color: #616161;
+}
+
+.btn-default-transparent:hover {
+  color: #c9c8c8;
+  background-color: #c9c8c8;
+  border-color: #c9c8c8;
+}
+
+.selected {
+  color: #f7f7f7;
+  background-color: #f7f7f7;
+  border-color: #f7f7f7;
+}
+.btn-sm, .btn-group-sm>.btn {
+  padding: 2px 5px;
+  font-size: 12px;
+  line-height: 1.5;
+  border-radius: 3px;
+  width: 51px;
+}
+
+
+.btn-group-justified {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+}
+.btn-group, .btn-group-vertical {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+}
   
+
+::-webkit-scrollbar {
+	width: 6px;
+	background-color: #202020;
+}
+
+::-webkit-scrollbar-thumb {
+	background-color: #616161;
+}
+  
+
+.grid-container {
+  display: grid;
+  grid-template-columns: auto auto;
+  padding: 10px;
+}
+
+.colored-div {
+  width: 48px;
+  height: 25px;
+  border-radius: 2px;
+  border: 2px solid #efefef;
+  border-top: 4px solid #efefef; /* Thicker top border */
+  border-bottom: 4px solid #efefef;
+  box-shadow: 0 0 1px 1px #777777;
+  margin: 3px;
+  background-color: rgb(0, 0, 0);
+}
+
+.colored-div::before {
+  position: absolute;
+  top: -4px; /* Adjust to place the inner border inside */
+  left: -2px;
+  right: -2px;
+  bottom: -4px;
+  border-top: 1px solid #777777; /* Inner border properties */
+  border-bottom: 1px solid #777777;
+  border-left: 1px solid #777777;
+  border-right: 1px solid #777777;
+  border-radius: 2px; /* Adjust to match the outer border-radius */
+}
+
+.color-holder{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+button {
+  grid-column: span 2; /* Span across two columns */
+  padding: 10px 20px; /* Add padding for a consistent button size */
+  cursor: pointer; /* Pointer cursor on hover */
+  background-color: #045a3a; /* Same background color as .dropbtn */
+  color: white; /* White text color */
+  font-size: 16px; /* Font size consistent with .dropbtn */
+  border: none; /* Remove border */
+  border-radius: 4px; /* Rounded corners */
+  box-shadow: 0px 3px 3px #111; /* Add box shadow for depth */
+  transition: background-color 0.2s; /* Smooth transition for hover effect */
+}
+
+/* Hover effect for the button */
+button:hover {
+  background-color: #04AA6D; /* Lighter green on hover, same as .dropbtn:hover */
+}
+
+/* Style for the button text shadow */
+button {
+  text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; /* Same text shadow as .off-screen-menu */
+}
+
+.color-holder, .input-holder, button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.color-holder h3, .input-holder h4 {
+  margin: 0;
+}
+
+.grid-title {
+    grid-column: span 2; /* Span across 2 columns */
+    text-align: center;
+    margin: 0;
+}
+
  

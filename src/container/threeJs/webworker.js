@@ -28,13 +28,12 @@ export class CustomThread {
 }
 
 export class WorkerPool {
-    constructor(entry, map, returnedDots) {
+    constructor(entry, map) {
         this._workers = [...Array(_NUM_WORKERS)].map(_ => new CustomThread(entry, this));
         this._free = [...this._workers];
         this._busy = {};
         this._queue = [];
         this._map = map;
-        this._returnedDots = returnedDots;
     }
 
     get length() {

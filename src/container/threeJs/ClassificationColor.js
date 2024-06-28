@@ -11,6 +11,15 @@ export class ClassificationColor {
         this.map.set(7, [255, 44, 22]);
         this.map.set(8, [255, 236, 0]);
         this.map.set(9, [0, 138, 229]);
+        this.map.set(10, [255, 255, 255]);
+        this.map.set(11, [208, 167, 78]);
+        this.map.set(12, [0, 255, 204]);
+        this.map.set(13, [187, 0, 255]);
+        this.map.set(14, [4, 0, 255]);
+        this.map.set(15, [255, 136, 0]);
+        this.map.set(16, [255, 0, 149]);
+        this.map.set(17, [199, 156, 78]);
+        this.map.set(18, [148, 0, 37]);
     }
 
     getColor(key) {

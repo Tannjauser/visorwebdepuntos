@@ -8,7 +8,7 @@ nav{
     padding: .5rem;
     background-color: #222;
 
-    display: flex;
+    position: relative;
     justify-content: flex-end;
     align-items: center;
 }
@@ -18,8 +18,11 @@ nav{
     width: 50px;
     position: relative;
     cursor: pointer;
-    padding: 1rem;
+    background-color: #222;
+    padding: 2rem;
     z-index: 1;
+    left: 0;
+    transition: left 0.5s;
 }
 
 .menu{
@@ -39,6 +42,10 @@ nav{
 }
 .menu-bottom{
     top: 75%;
+}
+
+.hamburger-menu.active {
+    left: 400px;
 }
 
 .hamburger-menu.active .menu-top{
