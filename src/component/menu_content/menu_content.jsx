@@ -7,13 +7,14 @@ import { useDropzone } from 'react-dropzone';
 import { LASLoader, options } from '@loaders.gl/las';
 import { load } from '@loaders.gl/core';
 
-export { renderDistanceValueOutput, sectorBoxDraw, bgColor, isSinglePointSelect };
+export { renderDistanceValueOutput, sectorBoxDraw, bgColor, isSinglePointSelect, isMeasuredSelected };
 
 var renderDistanceValueOutput = 1;
 var sectorBoxDraw;
 var bgColor;
 var pointType;
 var isSinglePointSelect = true;
+var isMeasuredSelected = false;
 
 window.addEventListener("load", function (e) {
     var slider = document.getElementById("pointSize");
@@ -47,6 +48,7 @@ window.addEventListener("load", function (e) {
     pointType = this.document.getElementById("pointType");
     pointType.innerHTML = "Punto único";
     isSinglePointSelect = true;
+    isMeasuredSelected = false;
 
     colorSecundario.value = "#000000";
     colorPrimario.value = "#ffffff";
@@ -341,6 +343,12 @@ export function pointGroupSelectedFunction(object) {
     }
 }
 
+export function updateDistance(distance) {
+
+    let distanceHeader = document.getElementById("distanceValue")
+    distanceHeader.innerHTML = "Distancia entre puntos: " + distance;
+}
+
 function getColorMappedValue(mappedValue) {
     let r = Math.round(lasMaterial.uniforms.colorMap.value[mappedValue * 3] * 255);
     let g = Math.round(lasMaterial.uniforms.colorMap.value[mappedValue * 3 + 1] * 255);
@@ -393,24 +401,47 @@ function hex2rgbFullValue(hex) {
 }
 
 function seleccionTipoPunto(event) {
-    if (event.target.value === "true") {
-        document.getElementById("puntoGroupSelectContainer").classList.add("hidden");
-        document.getElementById("puntoGroupSelect").classList.add("hidden");
-        document.getElementById("singleGroupTitle").textContent = "Punto seleccionado";
-        document.getElementById("buttonPuntoUnico").classList.toggle("selected");
-        document.getElementById("buttonPuntoGrupo").classList.toggle("selected");
-        pointType.innerHTML = "Punto único";
-        isSinglePointSelect = true;
-        changeSelectionType();
-    } else {
-        document.getElementById("puntoGroupSelectContainer").classList.add("hidden");
-        document.getElementById("puntoGroupSelect").classList.add("hidden");
-        document.getElementById("singleGroupTitle").textContent = "Grupo de puntos seleccionados";
-        document.getElementById("buttonPuntoUnico").classList.toggle("selected");
-        document.getElementById("buttonPuntoGrupo").classList.toggle("selected");
-        pointType.innerHTML = "Selección de puntos";
-        isSinglePointSelect = false;
-        changeSelectionType();
+    switch (event.target.value) {
+        case "single":
+            document.getElementById("puntoGroupSelectContainer").classList.add("hidden");
+            document.getElementById("puntoGroupSelect").classList.add("hidden");
+            document.getElementById("singleGroupTitle").textContent = "Punto seleccionado";
+            document.getElementById("buttonPuntoUnico").classList.add("selected");
+            document.getElementById("buttonPuntoGrupo").classList.remove("selected");
+            document.getElementById("buttonPuntoMedir").classList.remove("selected");
+            document.getElementById("distanceContainer").classList.add("hidden");
+            pointType.innerHTML = "Punto único";
+            isSinglePointSelect = true;
+            isMeasuredSelected = false;
+            changeSelectionType();
+            break;
+        case "group":
+            document.getElementById("puntoGroupSelectContainer").classList.add("hidden");
+            document.getElementById("puntoGroupSelect").classList.add("hidden");
+            document.getElementById("singleGroupTitle").textContent = "Grupo de puntos seleccionados";
+            document.getElementById("buttonPuntoUnico").classList.remove("selected");
+            document.getElementById("buttonPuntoGrupo").classList.add("selected");
+            document.getElementById("buttonPuntoMedir").classList.remove("selected");
+            document.getElementById("distanceContainer").classList.add("hidden");
+            pointType.innerHTML = "Grupos de puntos";
+            isSinglePointSelect = false;
+            isMeasuredSelected = false;
+            changeSelectionType();
+            break;
+        case "measure":
+            document.getElementById("puntoGroupSelectContainer").classList.add("hidden");
+            document.getElementById("puntoGroupSelect").classList.add("hidden");
+            document.getElementById("singleGroupTitle").textContent = "Medición entre dos puntos";
+            document.getElementById("buttonPuntoUnico").classList.remove("selected");
+            document.getElementById("buttonPuntoGrupo").classList.remove("selected");
+            document.getElementById("buttonPuntoMedir").classList.add("selected");
+            document.getElementById("distanceContainer").classList.remove("hidden");
+            let distanceHeader = document.getElementById("distanceValue")
+            pointType.innerHTML = "Medición entre dos puntos";
+            distanceHeader.innerHTML = "Distancia entre puntos: ";
+            isMeasuredSelected = true;
+            changeSelectionType();
+            break;
     }
 }
 
@@ -419,13 +450,13 @@ function seleccionCamara(event) {
     const center = new THREE.Vector3();
     let boundingBox;
     let distance;
-    if(jsonQuadTree.fileName){
+    if (jsonQuadTree.fileName) {
         jsonQuadTree.pointObject.geometry.computeBoundingBox();
         boundingBox = jsonQuadTree.pointObject.geometry.boundingBox;
 
         distance = new THREE.Box3().setFromObject(jsonQuadTree.pointObject).getSize(new THREE.Vector3()).length();
         boundingBox.getCenter(center);
-    }else{
+    } else {
         returnedDots.geometry.computeBoundingBox()
         boundingBox = returnedDots.geometry.boundingBox;
 
@@ -459,7 +490,7 @@ function seleccionCamara(event) {
             offset = new THREE.Vector3(center.x, center.y, center.z - distance);
             break;
     }
-    
+
     setCameraPosition(center, offset, boundingBox, distance);
 }
 
@@ -565,7 +596,6 @@ const MenuContent = () => {
                 pointCloud = await load(data, LASLoader, {
                     las: {
                         colorDepth: 16,
-                        skip: 10
                     }
                 });
             }
@@ -811,13 +841,23 @@ const MenuContent = () => {
                     <br></br>
                     <div onChange={seleccionTipoPunto}>
                         <label className="btn btn-default-grey selected btn-sm" id="buttonPuntoUnico">
-                            <input type="radio" name="tipo" value="true" style={{ display: "none" }} defaultChecked />
+                            <input type="radio" name="tipo" value="single" style={{ display: "none" }} defaultChecked />
                             <img src="colors/singlePoint.png" width="100%" />
                         </label>
                         <label className="btn btn-default-grey btn-sm" id="buttonPuntoGrupo">
-                            <input type="radio" name="tipo" value="false" style={{ display: "none" }} />
+                            <input type="radio" name="tipo" value="group" style={{ display: "none" }} />
                             <img src="colors/multipleSelect.png" width="100%" />
                         </label>
+                        <label className="btn btn-default-grey btn-sm" id="buttonPuntoMedir">
+                            <input type="radio" name="tipo" value="measure" style={{ display: "none" }} />
+                            <img src="colors/ruler.png" width="100%" />
+                        </label>
+                    </div>
+                    <br></br>
+                    <div id="distanceContainer" className="hidden">
+                        <hr class="dashed"></hr>
+                        <h4 id="distanceValue">Distancia entre puntos: </h4>
+                        <hr class="dashed"></hr>
                     </div>
                 </div>
                 <br></br>

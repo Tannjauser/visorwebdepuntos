@@ -33,7 +33,23 @@ body {
   left: 0;
 }
 .selectBox {
-  border: 1px dashed black;
+  border: 0px dashed black;
   position: absolute;
   pointer-events: none;
+}
+
+.selecting {
+  border: 1px dashed black;
+}
+
+.label {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 4px;
+  border-radius: 4px;
+  pointer-events: none;
+  font-size: 12px;
+}
+.hidden {
+  visibility: hidden;
 }

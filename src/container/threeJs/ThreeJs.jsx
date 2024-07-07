@@ -21,7 +21,8 @@ import { ChunckMapSet } from './chunkMapSet';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import { SelectionHelper } from 'three/examples/jsm/interactive/SelectionHelper.js';
 import { SelectionBox } from 'three/examples/jsm/interactive/SelectionBox.js';
-import { renderDistanceValueOutput, sectorBoxDraw, pointSelectedFunction, isSinglePointSelect, pointGroupSelectedFunction } from '../../component/menu_content/menu_content.jsx';
+import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
+import { renderDistanceValueOutput, sectorBoxDraw, pointSelectedFunction, isSinglePointSelect, pointGroupSelectedFunction, isMeasuredSelected, updateDistance } from '../../component/menu_content/menu_content.jsx';
 export { returnedDots, realativeHeight, negativeRelaHeight, maxHeight, scene, jsonQuadTree, jsonMaterial, lasMaterial };
 
 
@@ -44,6 +45,8 @@ var selectionBox;
 var helper;
 var controls;
 var selectedGorupPoints;
+var isShiftDown = false;
+let frames = 0, prevTime = performance.now();
 
 const hdrSkybox = new URL('../img/skybox.hdr', import.meta.url);
 const loader = new RGBELoader();
@@ -51,6 +54,7 @@ const sphereClicked = new THREE.Mesh(
   new THREE.SphereGeometry(0.3, 9, 5),
   new THREE.MeshBasicMaterial({ color: 0xffff00 })
 );
+var measurePointArray = [];
 
 function Init() {
   scene = new THREE.Scene();
@@ -101,8 +105,6 @@ function Init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     camera.updateProjectionMatrix();
   }, false);
-
-
 
   console.log("Cargado puntos");
   allPointsGeometry = new THREE.BufferGeometry();
@@ -410,8 +412,23 @@ function Init() {
 
   selectionBox = new SelectionBox(camera, scene);
   document.addEventListener('mousedown', onMouseDown);
+  document.addEventListener('keyup', shiftUp);
+  document.addEventListener('keydown', shiftDown);
+
+  function shiftDown(event) {
+    if (event.key === 'Shift') {
+      isShiftDown = true;
+    }
+  }
+
+  function shiftUp(event) {
+    if (event.key === 'Shift') {
+      isShiftDown = false;
+    }
+  }
 
   function onMouseMove(event) {
+    if (!isShiftDown) return
     if (!helper.isDown) {
       helper.pointBottomRight.set(event.clientX, event.clientY);
       selectionBox.endPoint.set(
@@ -423,87 +440,69 @@ function Init() {
   }
 
   function onMouseUp(event) {
+    if (!isShiftDown || !helper.element) return
     if (!helper.isDown) {
+      controls.enabled = true;
       selectedPoints = selectPoints(jsonQuadTree);
       helper.isDown = false;
+      helper.element.classList.remove("selecting")
       pointGroupSelectedFunction(selectedPoints);
     }
     document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onMouseUp);
   }
 
-  function selectPoints(quadTree) {
-    const selectedPoints = [];
-    const frustum = new THREE.Frustum();
-    const tmpPoint = new THREE.Vector3();
-    const tmpMatrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-
-    frustum.setFromProjectionMatrix(tmpMatrix);
-    const startX = Math.min(helper.pointTopLeft.x, helper.pointBottomRight.x);
-    const endX = Math.max(helper.pointTopLeft.x, helper.pointBottomRight.x);
-    const startY = Math.min(helper.pointTopLeft.y, helper.pointBottomRight.y);
-    const endY = Math.max(helper.pointTopLeft.y, helper.pointBottomRight.y);
-
-    let position;
-    let points = [];
-    let intersects = false;
-    let positionArray, classificationArray, intensityArray, RGBaArray;
-    if (quadTree.fileName) {
-      if (quadTree.geometry) {
-        positionArray = quadTree.geometry.attributes.position.array;
-        classificationArray = quadTree.geometry.attributes.classification.array;
-        intensityArray = quadTree.geometry.attributes.intensity.array;
-        if (quadTree.geometry.attributes.COLOR_0) {
-          RGBaArray = quadTree.geometry.attributes.COLOR_0.array;
-        } else {
-          RGBaArray = null;
-        }
-      }
-    } else {
-      positionArray = returnedDots.geometry.attributes.position.array;
-      classificationArray = returnedDots.geometry.attributes.classification.array;
-      intensityArray = returnedDots.geometry.attributes.intensity.array;
-      if (returnedDots.geometry.attributes.COLOR_0) {
-        RGBaArray = returnedDots.geometry.attributes.COLOR_0.array;
-      } else {
-        RGBaArray = null;
-      }
-    }
-
-
-    for (let i = 0; i < positionArray.length / 3; i++) {
-      tmpPoint.set(positionArray[i * 3], positionArray[i * 3 + 1], positionArray[i * 3 + 2]);
-      tmpPoint.project(camera);
-
-      const screenX = (tmpPoint.x * window.innerWidth) / 2 + window.innerWidth / 2;
-      const screenY = -(tmpPoint.y * window.innerHeight) / 2 + window.innerHeight / 2;
-
-      if (
-        screenX >= startX &&
-        screenX <= endX &&
-        screenY >= startY &&
-        screenY <= endY
-      ) {
-        points.push(i);
-        intersects = true;
-      }
-    }
-    if (intersects) {
-      selectedPoints.push({ points, classificationArray, intensityArray, RGBaArray });
-      if (quadTree.childrens) {
-        quadTree.childrens.forEach(childNode => {
-          selectedPoints.push(...selectPoints(childNode));
-        });
-      }
-    }
-
-    return selectedPoints;
-  }
-
   function onMouseDown(event) {
-
+    if (!isShiftDown) return
     if (event.target.matches('canvas')) {
-      if (isSinglePointSelect) {
+
+      if (isMeasuredSelected) {
+        const coordinates = new THREE.Vector2(
+          (event.clientX / renderer.domElement.clientWidth) * 2 - 1,
+          -((event.clientY / renderer.domElement.clientHeight) * 2 - 1)
+        );
+        raycaster.setFromCamera(coordinates, camera);
+
+        const intesercts = raycaster.intersectObjects(scene.children, true);
+        if (intesercts.length > 0) {
+          try {
+            if (intesercts[0].object.isPoints) {
+              const sphereClicked = new THREE.Mesh(
+                new THREE.SphereGeometry(0.3, 9, 5),
+                new THREE.MeshBasicMaterial({ color: 0xFF0000 })
+              );
+              scene.add(sphereClicked);
+              const index = intesercts[0].index;
+              const position = intesercts[0].object.geometry.attributes.position.array;
+
+              sphereClicked.position.set(position[index * 3], position[index * 3 + 1], position[index * 3 + 2]);
+              if (measurePointArray.length >= 2) cleanSelectionMeasure();
+              if (measurePointArray.length < 1) measurePointArray.push(sphereClicked);
+              else {
+                measurePointArray.push(sphereClicked);
+                const material = new THREE.LineBasicMaterial({
+                  color: 0x0000ff
+                });
+
+                let points = [];
+                measurePointArray.forEach(point => {
+                  points.push(point.position);
+                })
+
+                const geometry = new THREE.BufferGeometry().setFromPoints(points);
+
+                const line = new THREE.Line(geometry, material);
+                scene.add(line);
+                measurePointArray.push(line);
+                let pointDistance = measurePointArray[0].position.distanceTo(measurePointArray[1].position).toFixed(2) + "m";
+                updateDistance(pointDistance)
+              }
+            }
+          } catch (error) {
+            console.error(error);
+          }
+        }
+      } else if (isSinglePointSelect) {
         const coordinates = new THREE.Vector2(
           (event.clientX / renderer.domElement.clientWidth) * 2 - 1,
           -((event.clientY / renderer.domElement.clientHeight) * 2 - 1)
@@ -557,8 +556,9 @@ function Init() {
           pointSelectedFunction(false);
         }
       } else {
+        helper.element.classList.add("selecting")
+        controls.enabled = false;
         helper.pointTopLeft.set(event.clientX, event.clientY);
-        //helper.isDown = true;
         selectionBox.startPoint.set(
           (event.clientX / window.innerWidth) * 2 - 1,
           -(event.clientY / window.innerHeight) * 2 + 1,
@@ -577,6 +577,74 @@ function Init() {
     }
   }
 
+  function selectPoints(quadTree) {
+    const selectedPoints = [];
+    const frustum = new THREE.Frustum();
+    const tmpPoint = new THREE.Vector3();
+    const tmpMatrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+
+    frustum.setFromProjectionMatrix(tmpMatrix);
+    const startX = Math.min(helper.pointTopLeft.x, helper.pointBottomRight.x);
+    const endX = Math.max(helper.pointTopLeft.x, helper.pointBottomRight.x);
+    const startY = Math.min(helper.pointTopLeft.y, helper.pointBottomRight.y);
+    const endY = Math.max(helper.pointTopLeft.y, helper.pointBottomRight.y);
+
+    let position;
+    let points = [];
+    let intersects = false;
+    let positionArray, classificationArray, intensityArray, RGBaArray;
+    if (quadTree.fileName) {
+      if (quadTree.geometry) {
+        positionArray = quadTree.geometry.attributes.position.array;
+        classificationArray = quadTree.geometry.attributes.classification.array;
+        intensityArray = quadTree.geometry.attributes.intensity.array;
+        if (quadTree.geometry.attributes.COLOR_0) {
+          RGBaArray = quadTree.geometry.attributes.COLOR_0.array;
+        } else {
+          RGBaArray = null;
+        }
+      }
+    } else {
+      positionArray = returnedDots.geometry.attributes.position.array;
+      classificationArray = returnedDots.geometry.attributes.classification.array;
+      intensityArray = returnedDots.geometry.attributes.intensity.array;
+      if (returnedDots.geometry.attributes.COLOR_0) {
+        RGBaArray = returnedDots.geometry.attributes.COLOR_0.array;
+      } else {
+        RGBaArray = null;
+      }
+    }
+
+    if (positionArray) {
+      for (let i = 0; i < positionArray.length / 3; i++) {
+        tmpPoint.set(positionArray[i * 3], positionArray[i * 3 + 1], positionArray[i * 3 + 2]);
+        tmpPoint.project(camera);
+
+        const screenX = (tmpPoint.x * window.innerWidth) / 2 + window.innerWidth / 2;
+        const screenY = -(tmpPoint.y * window.innerHeight) / 2 + window.innerHeight / 2;
+
+        if (
+          screenX >= startX &&
+          screenX <= endX &&
+          screenY >= startY &&
+          screenY <= endY
+        ) {
+          points.push(i);
+          intersects = true;
+        }
+      }
+    }
+    if (intersects) {
+      selectedPoints.push({ points, classificationArray, intensityArray, RGBaArray });
+      if (quadTree.childrens) {
+        quadTree.childrens.forEach(childNode => {
+          selectedPoints.push(...selectPoints(childNode));
+        });
+      }
+    }
+
+    return selectedPoints;
+  }
 
   //scene.add(returnedDots);
   /*
@@ -637,6 +705,21 @@ function Init() {
   async function animate() {
     requestAnimationFrame(animate);
     jsonQuadTree.traverseTree(camera.position, renderDistanceValueOutput, sectorBoxDraw);
+    // FPS
+    
+    frames ++;
+    const time = performance.now();
+    
+    if ( time >= prevTime + 1000 ) {
+    
+    	console.log( Math.round( ( frames * 1000 ) / ( time - prevTime ) ) );
+      
+      frames = 0;
+      prevTime = time;
+      
+    }
+    
+    //
     //jsonDraw();
 
     renderer.render(jsonQuadTree.scene, camera);
@@ -794,12 +877,14 @@ function loadLasFile(file) {
     );
   }
 
+  //Ajustar el mapa para que empiece en la posicion [0,0,0]
   let referencePointx = returnedGeometry.getAttribute('position').array[0];
   let referencePointz = returnedGeometry.getAttribute('position').array[1];
   let referencePointy = returnedGeometry.getAttribute('position').array[2];
-  returnedGeometry.translate(-referencePointx, -referencePointz, -referencePointy);
-
-  returnedGeometry.rotateX(-1.5708);
+  returnedGeometry.translate(-referencePointx, -referencePointz, -referencePointy); 
+  
+  //Rotacion del mapa para ajustar los ejes a la escena
+  returnedGeometry.rotateX(-1.5708); 
   returnedGeometry.computeBoundingBox();
   returnedDots = new THREE.Points(returnedGeometry, lasMaterial);
   realativeHeight = returnedGeometry.boundingBox.max.y;
@@ -812,16 +897,33 @@ function loadLasFile(file) {
 }
 
 export function changeSelectionType() {
-  if (isSinglePointSelect) {
+  scene.remove(sphereClicked);
+  cleanSelectionMeasure();
+  if (isMeasuredSelected) {
+    sphereClicked.visible = false;
+  } else if (isSinglePointSelect) {
+    scene.add(sphereClicked);
     sphereClicked.visible = true;
-    helper.dispose();
+    if (helper) helper.dispose();
     controls.enabled = true;
   } else {
     sphereClicked.visible = false;
     helper = new SelectionHelper(renderer, "selectBox");
-    controls.enabled = false;
   }
 }
+
+function cleanSelectionMeasure() {
+  for (let i = 0; i < measurePointArray.length; i++) {
+    let pointMeasure = measurePointArray[i]
+    pointMeasure.geometry.dispose();
+    pointMeasure.material.dispose();
+    scene.remove(pointMeasure);
+  }
+  measurePointArray = [];
+}
+
+
+
 
 export function setCameraPosition(center, offset, boundingBox) {
   camera.position.copy(offset);
@@ -859,6 +961,8 @@ function ThreeJs() {
   return (
     <div>
       {Init()}
+      <div id="label" class="label hidden">TEST</div>
+      <script src="https://threejs.org/build/three.min.js"></script>
     </div>
   )
 }
