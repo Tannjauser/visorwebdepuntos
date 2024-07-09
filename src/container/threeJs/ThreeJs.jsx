@@ -1,42 +1,22 @@
 import './ThreeJs.css';
 
-import { Canvas } from "@react-three/fiber";
 
 import * as THREE from 'three';
-import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
-import { GridHelper } from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { ArcballControls } from 'three/examples/jsm/controls/ArcballControls';
 import { useEffect, useState, React } from 'react';
-import ReactDOM from 'react-dom';
-import { Box } from 'js-quadtree';
-import { QuadTree, Point, Rectangle } from './QuadTree.js';
 import { JsonQuadTree } from './JsonQuadTree.js';
-import { TerrainBuilder } from './worker.js';
 import { ClassificationColor } from './ClassificationColor.js';
-import { BufferGeometry } from 'three';
-import { MapControls } from 'three/addons/controls/MapControls.js';
-import { CustomThread, WorkerPool } from './webworker.js';
-import { ChunckMapSet } from './chunkMapSet';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import { SelectionHelper } from 'three/examples/jsm/interactive/SelectionHelper.js';
 import { SelectionBox } from 'three/examples/jsm/interactive/SelectionBox.js';
-import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { renderDistanceValueOutput, sectorBoxDraw, pointSelectedFunction, isSinglePointSelect, pointGroupSelectedFunction, isMeasuredSelected, updateDistance } from '../../component/menu_content/menu_content.jsx';
 export { returnedDots, realativeHeight, negativeRelaHeight, maxHeight, scene, jsonQuadTree, jsonMaterial, lasMaterial };
 
 
 
-var camera, scene, renderer, dot, allPointsGeometry, allDots, materialParam, realativeHeight, negativeRelaHeight, maxHeight, selectedPoints;
-//let responseArray = [];
-//let rectangle = new Rectangle(0, 0, 100000, 100000);
-//let quadTree = new QuadTree(rectangle, 1000);
-let group = new THREE.Group();
+var camera, scene, renderer, materialParam, realativeHeight, negativeRelaHeight, maxHeight, selectedPoints;
 var returnedDots, returnedGeometry;
 var jsonQuadTree;
-
-var webWorkerPool;
-var chunckMapSet;
 
 var lasMaterial;
 var jsonMaterial;
@@ -44,9 +24,7 @@ var jsonMaterial;
 var selectionBox;
 var helper;
 var controls;
-var selectedGorupPoints;
 var isShiftDown = false;
-let frames = 0, prevTime = performance.now();
 
 const hdrSkybox = new URL('../img/skybox.hdr', import.meta.url);
 const loader = new RGBELoader();
@@ -74,18 +52,10 @@ function Init() {
     5000
   );
 
-  //const gridHelper = new THREE.GridHelper(size, divisions);
-  //scene.add(gridHelper);
-
-  //const orbit = new OrbitControls(camera,renderer.domElement);
   controls = new ArcballControls(camera, renderer.domElement, scene);
   controls.setGizmosVisible(false);
   controls.cursorZoom = true;
-  //const controls = new MapControls( camera, renderer.domElement );
-  //controls.enableDamping = true;
 
-  //const axesHelper = new THREE.AxesHelper(5);
-  //scene.add(axesHelper);
 
   const ambientLight = new THREE.AmbientLight(0xfafafa, 1);
   scene.add(ambientLight);
@@ -93,7 +63,6 @@ function Init() {
   camera.position.set(100, 100, 100);
   camera.layers.enable(1);
   controls.update();
-  //scene.background = new THREE.Color(0x7393B3);
 
   loader.load(hdrSkybox, function (texture) {
     texture.mapping = THREE.EquirectangularReflectionMapping;
@@ -107,16 +76,12 @@ function Init() {
   }, false);
 
   console.log("Cargado puntos");
-  allPointsGeometry = new THREE.BufferGeometry();
   const fileName = 'chuncks';
   const jsonFile = importFile(require.context('../../data/chuncks/0/', false, /data.json/));
-  console.log(jsonFile);
   let jsonChunck = jsonFile[0];
   const texture = importAll(require.context('../../texture', false, /\.png/));
 
   const dotGeometry = new THREE.BufferGeometry();
-
-  //JSON
 
   returnedGeometry = new THREE.BufferGeometry();
   returnedGeometry.setAttribute(
@@ -407,7 +372,6 @@ function Init() {
   sphereClicked.layers.set(1);
   const raycaster = new THREE.Raycaster();
   raycaster.layers.set(0);
-  //raycaster.params.Points.threshold = 0.1
 
 
   selectionBox = new SelectionBox(camera, scene);
@@ -564,13 +528,6 @@ function Init() {
           -(event.clientY / window.innerHeight) * 2 + 1,
           0.5
         );
-        /*
-        selectionBox.startPoint.set(
-          (helper.pointTopLeft.x / window.innerWidth) * 2 - 1,
-          -(helper.pointTopLeft.y / window.innerHeight) * 2 + 1,
-          0.5
-        );
-        */
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
       }
@@ -646,144 +603,23 @@ function Init() {
     return selectedPoints;
   }
 
-  //scene.add(returnedDots);
-  /*
-  const gui = new GUI();
-  const heighmapFolder = gui.addFolder('Límites del Heightmap');
-  heighmapFolder.add(materialParam, 'materialThreshold', negativeRelaHeight, realativeHeight)
-    .onChange(function () {
-      returnedDots.material.uniforms.realativeHeight.value = materialParam.materialThreshold;
-      returnedDots.material.uniforms.realativeHeight.needsUpdate =true;
-      render();
-    }).name("Limite positivo");
-   
-  heighmapFolder.add(materialParam, 'negativeThreshold', negativeRelaHeight, realativeHeight)
-    .onChange(function () {
-      returnedDots.material.uniforms.negativeRelaHeight.value = materialParam.negativeThreshold;
-      returnedDots.material.uniforms.negativeRelaHeight.needsUpdate =true;
-      render();
-    }).name("Limite negativo");
-   
-   
-  const pointFolder = gui.addFolder('Características de punto');
-  pointFolder.add(materialParam, 'pointSize', 0.01, 10.0)
-    .onChange(function () {
-      returnedDots.material.uniforms.pointSize.value = materialParam.pointSize;
-      render();
-    }).name("Tamaño de punto");
-   
-  const pointFilterFolder = gui.addFolder('Otros filtros');
-  pointFilterFolder.add(materialParam, 'isClassification')
-    .onChange(function () {
-      returnedDots.material.uniforms.isClassification.value = materialParam.isClassification;
-      returnedDots.material.uniforms.isClassification.needsUpdate = true;
-      render();
-    }).name("Color Clasificacion");
-   
-  pointFilterFolder.add(materialParam, 'isIntensity')
-    .onChange(function () {
-      returnedDots.material.uniforms.isIntensity.value = materialParam.isIntensity;
-      returnedDots.material.uniforms.isIntensity.needsUpdate = true;
-      render();
-    }).name("Color Intensidad");
-   
-   
-  const allDotsFolder = gui.addFolder('Filtros todos los puntos');
-  allDotsFolder.add(returnedDots, 'visible').name("Mostrar Puntos");
-  allDotsFolder.add(returnedDots.geometry.drawRange, 'count', 0, returnedDots.geometry.attributes.position.count).name("Numero Puntos");
-   
-  const jsonFolder = gui.addFolder('JSON');
-  pointFolder.open();
-   
-  */
-
-  //chunckMapSet = new ChunckMapSet("0", jsonChunck);
-  //webWorkerPool = new WorkerPool("checkDistance.js", jsonQuadTree);
-
   animate();
 
   async function animate() {
     requestAnimationFrame(animate);
     jsonQuadTree.traverseTree(camera.position, renderDistanceValueOutput, sectorBoxDraw);
-    // FPS
     
+    // Mostrar FPS en consola
+    /*
     frames ++;
-    const time = performance.now();
-    
-    if ( time >= prevTime + 1000 ) {
-    
-    	console.log( Math.round( ( frames * 1000 ) / ( time - prevTime ) ) );
-      
+    const tiempo = performance.now();
+    if ( tiempo >= tiempoPrevio + 1000 ) {
+    	console.log( Math.round( ( frames * 1000 ) / ( tiempo - tiempoPrevio ) ) );
       frames = 0;
-      prevTime = time;
-      
-    }
-    
-    //
-    //jsonDraw();
-
-    renderer.render(jsonQuadTree.scene, camera);
-  }
-
-  async function jsonDraw() {
-    //promise = await jsonQTDistance(camera.position, returned, jsonQuadTree);
-    //webWorkerPool.Enqueue({ object: jsonQuadTree, camera: camera.position});
-    //webWorkerPool.Enqueue({ text: "Hola desde el principal", array: returned, object: jsonQuadTree, camera: camera.position });
-    //worker.postMessage({ text: "Hola desde el principal", array: returned, object: jsonQuadTree, camera: camera.position });
-    /*
-    for (let index = 0; index < returned.length; index++) {
-      const element = returned[index];
-      //put = put.concat(element);
-      pos = pos.concat(element[0]);
-      int = int.concat(element[2]);
-      classif = classif.concat(element[1]);
-    }
-   
-    const positionAtributte = returnedDots.geometry.getAttribute('position');
-   
-    returnedDots.geometry.needsUpdate = true;
-   
-   
-    const posAttrib = new THREE.BufferAttribute(new Float32Array(pos), 3);
-    returnedDots.geometry.setAttribute("position", posAttrib);
-    const posAttrib2 = new THREE.BufferAttribute(new Float32Array(int), 1);
-    returnedDots.geometry.setAttribute("intensity", posAttrib2);
-    const posAttrib3 = new THREE.BufferAttribute(new Float32Array(classif), 3);
-    returnedDots.geometry.setAttribute("classification", posAttrib3);
-    //const posAttrib = new THREE.BufferAttribute(new Float32Array(put), 3);
-    //returnedDots.geometry.setAttribute("position", posAttrib);
-    returnedDots.geometry.rotateX(-1.5708);
-    returnedDots.geometry.computeBoundingSphere();
-    returnedDots.geometry.needsUpdate = true;
-   
-   
-   
-   
-    //worker.postMessage("start");
-   
-    /*
-    worker.onmessage = (e) => {
-      console.log("SALUDOS PEQUE");
-   
+      tiempoPrevio = tiempo;
     }
     */
-
-
-    /*
-    worker.onmessage = (msg) => {
-      const posAttrib = new THREE.BufferAttribute(new Float32Array(msg.data.pos), 3);
-      returnedDots.geometry.setAttribute("position", posAttrib);
-      const posAttrib2 = new THREE.BufferAttribute(new Float32Array(msg.data.int), 1);
-      returnedDots.geometry.setAttribute("intensity", posAttrib2);
-      const posAttrib3 = new THREE.BufferAttribute(new Float32Array(msg.data.classif), 3);
-      returnedDots.geometry.setAttribute("classification", posAttrib3);
-      //const posAttrib = new THREE.BufferAttribute(new Float32Array(put), 3);
-      //returnedDots.geometry.setAttribute("position", posAttrib);
-      returnedDots.geometry.rotateX(-1.5708);
-      returnedDots.geometry.computeBoundingSphere();
-      returnedDots.geometry.needsUpdate = true;
-    };
-  */
+    renderer.render(jsonQuadTree.scene, camera);
   }
 }
 
@@ -818,7 +654,7 @@ export function modificarClasificacion(clasificacionTipo, intensidadValor, valor
   selectedPoints.forEach((index_geometry) => {
 
     index_geometry.points.forEach((point) => {
-      index_geometry.classificationArray[point] = clasificacionTipo; // Update classification
+      index_geometry.classificationArray[point] = clasificacionTipo;
       index_geometry.intensityArray[point] = intensidadValor;
       if (index_geometry.RGBaArray) {
         index_geometry.RGBaArray[4 * point] = valorColor.r;

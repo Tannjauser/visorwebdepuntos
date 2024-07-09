@@ -307,7 +307,6 @@ export function pointSelectedFunction(object, classificationColor, index) {
     } else {
         document.getElementById("puntoGroupSelect").classList.remove("hidden");
         document.getElementById("puntoGroupSelectContainer").classList.remove("hidden");
-        //pointSelected = object;
         let intensityRange = lasMaterial.uniforms.intensityRange.value;
         let colorClasificacionSelect = document.getElementById("groupColorClasificacionSelect");
         let colorIntensidadDisplay = document.getElementById("groupColorIntensidadIndicator");
@@ -384,19 +383,16 @@ function rgbToHex(r, g, b) {
 }
 
 function hex2rgb(hex) {
-    const r = parseInt(hex.slice(1, 3), 16) / 255;
-    const g = parseInt(hex.slice(3, 5), 16) / 255;
-    const b = parseInt(hex.slice(5, 7), 16) / 255;
-
-    // return {r, g, b} 
+    let rgb = hex2rgbFullValue(hex)
+    let r = rgb.r / 255
+    let g = rgb.g / 255
+    let b = rgb.b / 255
     return { r, g, b };
 }
 function hex2rgbFullValue(hex) {
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
-
-    // return {r, g, b} 
     return { r, g, b };
 }
 
