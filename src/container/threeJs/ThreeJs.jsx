@@ -77,7 +77,7 @@ function Init() {
 
   console.log("Cargado puntos");
   const fileName = 'chuncks';
-  const jsonFile = importFile(require.context('../../data/chuncks/0/', false, /data.json/));
+  const jsonFile = importFile(require.context('../../data/chuncks2/0/', false, /data.json/));
   let jsonChunck = jsonFile[0];
   const texture = importAll(require.context('../../texture', false, /\.png/));
 

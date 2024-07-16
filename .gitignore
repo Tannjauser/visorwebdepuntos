@@ -12,7 +12,6 @@
 /public/build
 /build/chuncks
 /public/chuncks
-/src/data
 # misc
 .DS_Store
 .env.local
@@ -26,5 +25,4 @@ yarn-error.log*
 
 # chunks
 /chunks
-*.json
 /build
